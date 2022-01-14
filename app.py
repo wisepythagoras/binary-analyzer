@@ -32,8 +32,9 @@ def scan_binary():
     # Save a temporary file.
     file_name = 'up_{}_{}'.format(uuid.uuid1().hex, file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
-    file.save(file_path)
     file_hash = ''
+
+    file.save(file_path)
 
     with open(file_path, 'rb') as f:
         bytes = f.read()
