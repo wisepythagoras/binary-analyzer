@@ -1,10 +1,15 @@
 import os
 import lief
+import uuid
+import hashlib
 from flask import Flask, jsonify, request, render_template, url_for
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = './uploads/'
+
+def hash_file(bytes):
+    return hashlib.sha256(bytes).hexdigest()
 
 @app.route('/api/binary/scan', methods=['POST'])
 def scan_binary():
@@ -24,10 +29,21 @@ def scan_binary():
             'data': {},
         }), 500
 
-    file_name = secure_filename(file.filename)
+    # Save a temporary file.
+    file_name = 'up_{}_{}'.format(uuid.uuid1().hex, file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
     file.save(file_path)
 
+    # Compute the hash of the file by reading its contents.
+    file_hash = hash_file(file.read())
+
+    # Replace the file with saved file with a name containing its hash.
+    file_name = 'up_{}_{}'.format(file_hash, file.filename)
+    new_file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+    os.rename(file_path, new_file_path)
+    file_path = new_file_path
+
+    # Open the binary file.
     binary = lief.parse(file_path)
 
     return jsonify({
@@ -37,6 +53,7 @@ def scan_binary():
             'url': url_for('download_file', name=file_name),
             'type': binary.header.file_type.name,
             'arch': binary.header.machine_type.name,
+            'hash': file_hash,
         },
     })
 
