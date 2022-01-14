@@ -33,15 +33,22 @@ def scan_binary():
     file_name = 'up_{}_{}'.format(uuid.uuid1().hex, file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
     file.save(file_path)
+    file_hash = ''
 
-    # Compute the hash of the file by reading its contents.
-    file_hash = hash_file(file.read())
+    with open(file_path, 'rb') as f:
+        bytes = f.read()
 
-    # Replace the file with saved file with a name containing its hash.
-    file_name = 'up_{}_{}'.format(file_hash, file.filename)
-    new_file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
-    os.rename(file_path, new_file_path)
-    file_path = new_file_path
+        # Compute the hash of the file by reading its contents.
+        file_hash = hash_file(bytes)
+        print(file_hash)
+
+        # Replace the file with saved file with a name containing its hash.
+        file_name = 'up_{}_{}'.format(file_hash, file.filename)
+        new_file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
+        os.rename(file_path, new_file_path)
+        file_path = new_file_path
+
+        f.close()
 
     # Open the binary file.
     binary = lief.parse(file_path)
